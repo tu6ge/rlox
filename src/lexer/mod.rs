@@ -4,7 +4,7 @@ use crate::report;
 
 mod token;
 
-pub struct Scanner {
+pub struct Lexer {
     source: String,
     tokens: Vec<Token>,
     start: usize,
@@ -12,10 +12,10 @@ pub struct Scanner {
     line: usize,
 }
 
-impl Scanner {
-    pub fn new(source: String) -> Self {
-        Scanner {
-            source,
+impl Lexer {
+    pub fn new(source: &str) -> Self {
+        Lexer {
+            source: source.to_string(),
             tokens: Vec::new(),
             start: 0,
             current: 0,
@@ -245,5 +245,69 @@ impl Scanner {
             "while" => Some(TokenType::While),
             _ => None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn normal_token(ttype: TokenType, lexeme: &str) -> Token {
+        Token::new(ttype, lexeme.to_string(), LiteralTypes::Nil, 1)
+    }
+    fn number_token(lexeme: &str, number: f64) -> Token {
+        Token::new(
+            TokenType::Number,
+            lexeme.to_string(),
+            LiteralTypes::Number(number),
+            1,
+        )
+    }
+    fn string_token(lexeme: &str, value: &str) -> Token {
+        Token::new(
+            TokenType::String,
+            lexeme.to_string(),
+            LiteralTypes::String(value.to_string()),
+            1,
+        )
+    }
+    fn iden_token(lexeme: &str) -> Token {
+        Token::new(
+            TokenType::Identifier,
+            lexeme.to_string(),
+            LiteralTypes::String(lexeme.to_string()),
+            1,
+        )
+    }
+
+    #[test]
+    fn test_expression() {
+        let tokens = Lexer::new("1 + a - 2.5").scan_tokens();
+        assert_eq!(
+            tokens,
+            vec![
+                number_token("1", 1.0),
+                normal_token(TokenType::Plus, "+"),
+                iden_token("a"),
+                normal_token(TokenType::Minus, "-"),
+                number_token("2.5", 2.5),
+                normal_token(TokenType::Eof, "")
+            ]
+        )
+    }
+
+    #[test]
+    fn test_assign() {
+        let tokens = Lexer::new("var foo = \"bar\"").scan_tokens();
+        assert_eq!(
+            tokens,
+            vec![
+                normal_token(TokenType::Var, "var"),
+                iden_token("foo"),
+                normal_token(TokenType::Equal, "="),
+                string_token("\"bar\"", "bar"),
+                normal_token(TokenType::Eof, "")
+            ]
+        )
     }
 }
