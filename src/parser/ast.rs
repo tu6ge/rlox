@@ -39,11 +39,11 @@ pub trait Visitor<T> {
     fn visit_grouping(&mut self, expr: &Grouping) -> T;
     fn visit_unary(&mut self, expr: &Unary) -> T;
     fn visit_literal(&self, expr: &LiteralTypes) -> T;
-    fn visit_comparison(&self, expr: &Comparison) -> T;
+    fn visit_comparison(&mut self, expr: &Comparison) -> T;
 }
 
 impl Ast {
-    fn accept<T>(&self, visitor: &mut dyn Visitor<T>) -> T {
+    pub fn accept<T>(&self, visitor: &mut dyn Visitor<T>) -> T {
         match self {
             Ast::Binary(b) => visitor.visit_binary(b),
             Ast::Literal(b) => visitor.visit_literal(b),

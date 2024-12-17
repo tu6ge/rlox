@@ -13,8 +13,9 @@
 use ast::{Ast, Binary, Comparison};
 
 use crate::lexer::{Lexer, LiteralTypes, Token, TokenType};
-
+use ast::Visitor;
 mod ast;
+mod inter;
 
 macro_rules! error_message {
     ($literal:literal) => {
@@ -67,7 +68,7 @@ impl Parser {
         ]) {
             let op = self.previous();
             let right = self.term()?;
-            expr = Ast::Binary(Binary {
+            expr = Ast::Comparison(Comparison {
                 op,
                 left: Box::new(expr),
                 right: Box::new(right),
