@@ -101,7 +101,7 @@ impl Lexer {
                 let slash = self.is_next_expected(b'/');
                 if slash {
                     while self.peek() != b'\n' && !self.is_at_end() {
-                        self.current += 1;
+                        self.advance();
                     }
                 } else {
                     self.add_token(TokenType::Slash, LiteralTypes::Nil)
