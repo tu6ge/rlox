@@ -56,6 +56,7 @@ impl Parser {
         Ok(expr)
     }
 
+    /// comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
     fn comparison(&mut self) -> Result<Ast, Error> {
         let mut expr = self.term()?;
         while self.is_match(&[
@@ -75,6 +76,7 @@ impl Parser {
         Ok(expr)
     }
 
+    /// term           → factor ( ( "-" | "+" ) factor )* ;
     fn term(&mut self) -> Result<Ast, Error> {
         let mut expr = self.factor()?;
         while self.is_match(&[TokenType::Plus, TokenType::Minus]) {
@@ -89,6 +91,7 @@ impl Parser {
         Ok(expr)
     }
 
+    /// factor         → unary ( ( "/" | "*" ) unary )*
     fn factor(&mut self) -> Result<Ast, Error> {
         let mut expr = self.unary()?;
         while self.is_match(&[TokenType::Slash, TokenType::Star]) {
@@ -103,6 +106,8 @@ impl Parser {
 
         Ok(expr)
     }
+
+    /// unary → ( "!" | "-" ) unary | primary
     fn unary(&mut self) -> Result<Ast, Error> {
         if self.is_match(&[TokenType::Bang, TokenType::Minus]) {
             let op = self.previous();
