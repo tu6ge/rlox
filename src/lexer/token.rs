@@ -81,5 +81,6 @@ pub enum TokenType {
     Var,
     While,
 
+    Error,
     Eof,
 }

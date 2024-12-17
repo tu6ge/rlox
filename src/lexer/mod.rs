@@ -1,7 +1,5 @@
 pub use token::{LiteralTypes, Token, TokenType};
 
-use crate::report;
-
 mod token;
 
 pub struct Lexer {
@@ -120,7 +118,7 @@ impl Lexer {
                 } else if self.is_alpha(c) {
                     self.identifier();
                 } else {
-                    report(self.line, "Unexpected Character");
+                    self.add_token(TokenType::Error, LiteralTypes::Nil);
                 }
             }
         }
@@ -176,10 +174,14 @@ impl Lexer {
             }
             self.current += 1;
         }
-        self.current += 1;
 
-        let value: String = self.source[self.start + 1..self.current - 1].to_string();
-        self.add_token(TokenType::String, LiteralTypes::String(value));
+        if self.is_next_expected(b'"') {
+            self.current += 1;
+            let value: String = self.source[self.start + 1..self.current - 1].to_string();
+            self.add_token(TokenType::String, LiteralTypes::String(value));
+        } else {
+            self.add_token(TokenType::Error, LiteralTypes::Nil);
+        }
     }
 
     fn number(&mut self) {
@@ -306,6 +308,32 @@ mod tests {
                 iden_token("foo"),
                 normal_token(TokenType::Equal, "="),
                 string_token("\"bar\"", "bar"),
+                normal_token(TokenType::Eof, "")
+            ]
+        )
+    }
+
+    #[test]
+    fn test_error() {
+        let tokens = Lexer::new("@#").scan_tokens();
+        assert_eq!(
+            tokens,
+            vec![
+                normal_token(TokenType::Error, "@"),
+                normal_token(TokenType::Error, "#"),
+                normal_token(TokenType::Eof, "")
+            ]
+        )
+    }
+
+    #[test]
+    fn test_string_error() {
+        let tokens = Lexer::new("\"foo").scan_tokens();
+
+        assert_eq!(
+            tokens,
+            vec![
+                normal_token(TokenType::Error, "\"foo"),
                 normal_token(TokenType::Eof, "")
             ]
         )
