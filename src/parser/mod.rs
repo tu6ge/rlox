@@ -222,25 +222,25 @@ mod tests {
         Token::new(ttype, lexeme.to_string(), LiteralTypes::Nil, 1)
     }
 
-    // #[test]
-    // fn test_normal() {
-    //     let mut parser = Parser::new("1 + 2 * 3 - 4");
-    //     let ast = parser.expression().unwrap();
-    //     assert_eq!(
-    //         ast,
-    //         Ast::Binary {
-    //             left: Box::new(Ast::Binary {
-    //                 left: Box::new(Ast::Literal(LiteralTypes::Number(1.0))),
-    //                 op: normal_token(TokenType::Plus, "+"),
-    //                 right: Box::new(Ast::Binary {
-    //                     left: Box::new(Ast::Literal(LiteralTypes::Number(2.0))),
-    //                     op: normal_token(TokenType::Star, "*"),
-    //                     right: Box::new(Ast::Literal(LiteralTypes::Number(3.0))),
-    //                 })
-    //             }),
-    //             op: normal_token(TokenType::Minus, "-"),
-    //             right: Box::new(Ast::Literal(LiteralTypes::Number(4.0)))
-    //         }
-    //     )
-    // }
+    #[test]
+    fn test_normal() {
+        let mut parser = Parser::new("1 + 2 * 3 - 4");
+        let ast = parser.expression().unwrap();
+        assert_eq!(
+            ast,
+            Ast::Binary(Binary {
+                left: Box::new(Ast::Binary(Binary {
+                    left: Box::new(Ast::Literal(LiteralTypes::Number(1.0))),
+                    op: normal_token(TokenType::Plus, "+"),
+                    right: Box::new(Ast::Binary(Binary {
+                        left: Box::new(Ast::Literal(LiteralTypes::Number(2.0))),
+                        op: normal_token(TokenType::Star, "*"),
+                        right: Box::new(Ast::Literal(LiteralTypes::Number(3.0))),
+                    }))
+                })),
+                op: normal_token(TokenType::Minus, "-"),
+                right: Box::new(Ast::Literal(LiteralTypes::Number(4.0)))
+            })
+        )
+    }
 }

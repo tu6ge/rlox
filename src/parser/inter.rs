@@ -5,6 +5,9 @@ use super::{ast::Ast, LiteralTypes, Visitor};
 pub struct Interpreter {}
 
 impl Interpreter {
+    pub fn new() -> Self {
+        Self {}
+    }
     fn evaluate(&mut self, ast: &Ast) -> LiteralTypes {
         ast.accept(self)
     }
@@ -84,5 +87,47 @@ impl Visitor<LiteralTypes> for Interpreter {
         };
 
         LiteralTypes::Bool(bool)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::parser::Parser;
+
+    use super::*;
+
+    fn number(val: f64) -> LiteralTypes {
+        LiteralTypes::Number(val)
+    }
+    fn get_value(source: &str) -> LiteralTypes {
+        let ast = Parser::new(source).equality().unwrap();
+
+        let mut inter = Interpreter::new();
+        inter.evaluate(&ast)
+    }
+
+    #[test]
+    fn noraml() {
+        assert_eq!(get_value("-1"), number(-1.0));
+        assert_eq!(get_value("1+ (-2)"), number(-1.0));
+
+        assert_eq!(get_value("1 + 2 * (3+4) - 5"), number(10.0));
+    }
+
+    #[test]
+    fn logic() {
+        assert_eq!(get_value("true"), LiteralTypes::Bool(true));
+        assert_eq!(get_value("nil"), LiteralTypes::Nil);
+        assert_eq!(get_value("!!nil"), LiteralTypes::Bool(false));
+
+        assert_eq!(get_value("true == false"), LiteralTypes::Bool(false));
+        assert_eq!(get_value("false == true"), LiteralTypes::Bool(false));
+        assert_eq!(get_value("nil == false"), LiteralTypes::Bool(true));
+
+        assert_eq!(get_value("1 + 2 == 3"), LiteralTypes::Bool(true));
+        assert_eq!(get_value("1 + 2 >  3"), LiteralTypes::Bool(false));
+        assert_eq!(get_value("1 + 2 >= 3"), LiteralTypes::Bool(true));
+        assert_eq!(get_value("1 + 2 <  4"), LiteralTypes::Bool(true));
+        assert_eq!(get_value("1 + 2 <= 4"), LiteralTypes::Bool(true));
     }
 }

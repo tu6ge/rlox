@@ -92,6 +92,8 @@ impl LiteralTypes {
             (LiteralTypes::String(left), LiteralTypes::String(right)) => left == right,
             (LiteralTypes::Bool(left), LiteralTypes::Bool(right)) => left == right,
             (LiteralTypes::Nil, LiteralTypes::Nil) => true,
+            (LiteralTypes::Nil, LiteralTypes::Bool(b)) if *b == false => true,
+            (LiteralTypes::Bool(b), LiteralTypes::Nil) if *b == false => true,
             _ => false,
         }
     }
