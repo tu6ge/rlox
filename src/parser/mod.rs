@@ -11,11 +11,13 @@
 //! ```
 
 use ast::{Binary, Comparison, Expr};
+use stmt::{Expression, Print, Stmt};
 
 use crate::lexer::{Lexer, LiteralTypes, Token, TokenType};
 use ast::Visitor;
 mod ast;
 mod inter;
+mod stmt;
 
 macro_rules! error_message {
     ($literal:literal) => {
@@ -35,6 +37,35 @@ impl Parser {
     pub fn new(source: &str) -> Self {
         let tokens = Lexer::new(source).scan_tokens();
         Self { tokens, current: 0 }
+    }
+
+    pub fn parse(&mut self) -> Result<Vec<Stmt>, Error> {
+        let mut statements = Vec::new();
+        while !self.is_at_end() {
+            statements.push(self.statement()?);
+        }
+
+        Ok(statements)
+    }
+    fn statement(&mut self) -> Result<Stmt, Error> {
+        if self.is_match(&[TokenType::Print]) {
+            return self.print_statement();
+        }
+
+        self.expression_statement()
+    }
+
+    fn print_statement(&mut self) -> Result<Stmt, Error> {
+        let expression = self.expression()?;
+        self.consume(&TokenType::Semicolon, "Expect ';' after value.")?;
+
+        Ok(Stmt::Print(Print { expression }))
+    }
+    fn expression_statement(&mut self) -> Result<Stmt, Error> {
+        let expression = self.expression()?;
+        self.consume(&TokenType::Semicolon, "Expect ';' after value.")?;
+
+        Ok(Stmt::Expression(Expression { expression }))
     }
 
     pub fn expression(&mut self) -> Result<Expr, Error> {

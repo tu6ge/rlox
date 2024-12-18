@@ -97,4 +97,13 @@ impl LiteralTypes {
             _ => false,
         }
     }
+
+    pub fn stringify(&self) -> String {
+        match self {
+            LiteralTypes::Number(num) => num.to_string(),
+            LiteralTypes::Bool(b) => b.to_string(),
+            LiteralTypes::Nil => "Nil".to_string(),
+            LiteralTypes::String(str) => format!("\"{}\"", str),
+        }
+    }
 }

@@ -1,6 +1,10 @@
 use crate::lexer::{Token, TokenType::*};
 
-use super::{ast::Expr, LiteralTypes, Visitor};
+use super::{
+    ast::Expr,
+    stmt::{self, Stmt},
+    LiteralTypes, Visitor,
+};
 
 pub struct Interpreter {}
 
@@ -13,6 +17,15 @@ impl Interpreter {
     pub fn new() -> Self {
         Self {}
     }
+    pub fn interpret(&mut self, stmt: &[Stmt]) {
+        for i in stmt {
+            self.execute(i);
+        }
+    }
+    fn execute(&mut self, stmt: &Stmt) {
+        stmt.accept(self)
+    }
+
     fn evaluate(&mut self, ast: &Expr) -> Result<LiteralTypes, RuntimeError> {
         ast.accept(self)
     }
@@ -111,6 +124,17 @@ impl Visitor<Result<LiteralTypes, RuntimeError>> for Interpreter {
     }
 }
 
+impl stmt::Visitor<()> for Interpreter {
+    fn visit_expression_stmt(&mut self, expr: &stmt::Expression) -> () {
+        self.evaluate(&expr.expression);
+    }
+
+    fn visit_print_stmt(&mut self, expr: &stmt::Print) -> () {
+        let res = self.evaluate(&expr.expression).unwrap();
+        println!("{}", res.stringify());
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::parser::Parser;
@@ -150,5 +174,13 @@ mod tests {
         assert_eq!(get_value("1 + 2 >= 3"), LiteralTypes::Bool(true));
         assert_eq!(get_value("1 + 2 <  4"), LiteralTypes::Bool(true));
         assert_eq!(get_value("1 + 2 <= 4"), LiteralTypes::Bool(true));
+    }
+
+    #[test]
+    fn run_stmt() {
+        let stmt = Parser::new("print \"abc\";").parse().unwrap();
+
+        let mut inter = Interpreter::new();
+        inter.interpret(&stmt);
     }
 }
