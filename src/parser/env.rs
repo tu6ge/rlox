@@ -29,8 +29,8 @@ impl Environment {
         let key = &token.lexeme;
         if self.values.contains_key(key) {
             return self.values.get(key).map(Clone::clone);
-        } else if self.enclosing.is_some() {
-            return self.enclosing.as_ref().unwrap().borrow().get(token);
+        } else if let Some(enclosing) = &self.enclosing {
+            return enclosing.borrow().get(token);
         }
 
         None
