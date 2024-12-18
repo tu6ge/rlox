@@ -1,4 +1,7 @@
-use crate::lexer::{Token, TokenType::*};
+use crate::lexer::{
+    Token,
+    TokenType::{self, *},
+};
 
 use super::{
     ast::Expr,
@@ -171,6 +174,25 @@ impl Visitor<Result<LiteralTypes, RuntimeError>> for Interpreter {
 
         Ok(value)
     }
+
+    fn visit_logical_expr(
+        &mut self,
+        expr: &super::ast::Logical,
+    ) -> Result<LiteralTypes, RuntimeError> {
+        let left = self.evaluate(&expr.left)?;
+
+        if expr.op.ttype == TokenType::Or {
+            if left.is_true() {
+                return Ok(left);
+            }
+        } else {
+            if !left.is_true() {
+                return Ok(left);
+            }
+        }
+
+        self.evaluate(&expr.right)
+    }
 }
 
 impl stmt::Visitor<Result<(), RuntimeError>> for Interpreter {
@@ -205,6 +227,16 @@ impl stmt::Visitor<Result<(), RuntimeError>> for Interpreter {
             &block.statements,
             Environment::new_with_enclosing(Box::new(self.environment.clone())),
         )?;
+
+        Ok(())
+    }
+
+    fn visit_if_stmt(&mut self, stmt: &stmt::If) -> Result<(), RuntimeError> {
+        if self.evaluate(&stmt.condition)?.is_true() {
+            self.execute(&stmt.then_branch)?;
+        } else if let Some(else_branch) = &stmt.else_branch {
+            self.execute(&else_branch)?;
+        }
 
         Ok(())
     }
@@ -305,6 +337,16 @@ print a;
 print b;
 print c;
         "#;
+        let stmt = Parser::new(code).parse().unwrap();
+        //println!("{:?}", stmt);
+
+        let mut inter = Interpreter::new();
+        inter.interpret(&stmt);
+    }
+
+    #[test]
+    fn run_logical_stmt() {
+        let code = r#"print nil or 123;"#;
         let stmt = Parser::new(code).parse().unwrap();
         //println!("{:?}", stmt);
 

@@ -106,4 +106,12 @@ impl LiteralTypes {
             LiteralTypes::String(str) => format!("\"{}\"", str),
         }
     }
+
+    pub fn is_true(&self) -> bool {
+        match self {
+            LiteralTypes::Bool(b) => *b,
+            LiteralTypes::Nil => false,
+            _ => true,
+        }
+    }
 }

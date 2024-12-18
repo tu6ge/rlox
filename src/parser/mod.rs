@@ -10,8 +10,8 @@
 //！               | "(" expression ")" ;
 //! ```
 
-use ast::{Assign, Binary, Comparison, Expr, Variable};
-use stmt::{Block, Expression, Print, Stmt};
+use ast::{Assign, Binary, Comparison, Expr, Logical, Variable};
+use stmt::{Block, Expression, If, Print, Stmt};
 
 use crate::lexer::{Lexer, LiteralTypes, Token, TokenType};
 use ast::Visitor;
@@ -72,6 +72,9 @@ impl Parser {
     }
 
     fn statement(&mut self) -> Result<Stmt, Error> {
+        if self.is_match(&[TokenType::If]) {
+            return self.if_statement();
+        }
         if self.is_match(&[TokenType::Print]) {
             return self.print_statement();
         }
@@ -80,6 +83,24 @@ impl Parser {
         }
 
         self.expression_statement()
+    }
+
+    fn if_statement(&mut self) -> Result<Stmt, Error> {
+        self.consume(&TokenType::LeftParen, "Expect '(' after 'if'.")?;
+        let condition = self.expression()?;
+        self.consume(&TokenType::RightParen, "Expect ')' after if condition.")?;
+
+        let then_branch = Box::new(self.statement()?);
+        let mut else_branch = None;
+        if self.is_match(&[TokenType::Else]) {
+            else_branch = Some(Box::new(self.statement()?));
+        }
+
+        Ok(Stmt::If(If {
+            condition,
+            then_branch,
+            else_branch,
+        }))
     }
 
     fn block(&mut self) -> Result<Block, Error> {
@@ -111,7 +132,7 @@ impl Parser {
     }
 
     fn assignment(&mut self) -> Result<Expr, Error> {
-        let expr = self.equality()?;
+        let expr = self.or()?;
 
         if self.is_match(&[TokenType::Equal]) {
             let equal = self.previous();
@@ -125,6 +146,36 @@ impl Parser {
             }
 
             return Err(self.token_error(&equal, "Invalid assignment target."));
+        }
+
+        Ok(expr)
+    }
+
+    fn or(&mut self) -> Result<Expr, Error> {
+        let mut expr = self.and()?;
+        while self.is_match(&[TokenType::Or]) {
+            let op = self.previous();
+            let right = self.and()?;
+            expr = Expr::Logical(Logical {
+                left: Box::new(expr),
+                op,
+                right: Box::new(right),
+            });
+        }
+
+        Ok(expr)
+    }
+    fn and(&mut self) -> Result<Expr, Error> {
+        let mut expr = self.equality()?;
+
+        while self.is_match(&[TokenType::And]) {
+            let op = self.previous();
+            let right = self.equality()?;
+            expr = Expr::Logical(Logical {
+                left: Box::new(expr),
+                op,
+                right: Box::new(right),
+            });
         }
 
         Ok(expr)

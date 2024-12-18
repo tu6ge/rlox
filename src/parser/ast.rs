@@ -9,6 +9,7 @@ pub enum Expr {
     Grouping(Grouping), // ()
     Variable(Variable),
     Assign(Assign),
+    Logical(Logical),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -47,6 +48,13 @@ pub struct Assign {
     pub value: Box<Expr>,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct Logical {
+    pub left: Box<Expr>,
+    pub op: Token,
+    pub right: Box<Expr>,
+}
+
 pub trait Visitor<T> {
     fn visit_binary(&mut self, expr: &Binary) -> T;
     fn visit_grouping(&mut self, expr: &Grouping) -> T;
@@ -55,6 +63,7 @@ pub trait Visitor<T> {
     fn visit_comparison(&mut self, expr: &Comparison) -> T;
     fn visit_variable(&mut self, expr: &Variable) -> T;
     fn visit_assign_expr(&mut self, expr: &Assign) -> T;
+    fn visit_logical_expr(&mut self, expr: &Logical) -> T;
 }
 
 impl Expr {
@@ -67,6 +76,7 @@ impl Expr {
             Expr::Grouping(g) => visitor.visit_grouping(g),
             Expr::Variable(var) => visitor.visit_variable(var),
             Expr::Assign(a) => visitor.visit_assign_expr(a),
+            Expr::Logical(l) => visitor.visit_logical_expr(l),
         }
     }
 }
