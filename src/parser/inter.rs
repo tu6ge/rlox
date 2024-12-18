@@ -2,11 +2,14 @@ use crate::lexer::{Token, TokenType::*};
 
 use super::{
     ast::Expr,
+    env::Environment,
     stmt::{self, Stmt},
     LiteralTypes, Visitor,
 };
 
-pub struct Interpreter {}
+pub struct Interpreter {
+    environment: Environment,
+}
 
 #[derive(Debug, Clone)]
 enum RuntimeError {
@@ -15,14 +18,16 @@ enum RuntimeError {
 
 impl Interpreter {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            environment: Environment::new(),
+        }
     }
     pub fn interpret(&mut self, stmt: &[Stmt]) {
         for i in stmt {
             self.execute(i);
         }
     }
-    fn execute(&mut self, stmt: &Stmt) {
+    fn execute(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
         stmt.accept(self)
     }
 
@@ -122,16 +127,41 @@ impl Visitor<Result<LiteralTypes, RuntimeError>> for Interpreter {
 
         Ok(LiteralTypes::Bool(bool))
     }
+
+    fn visit_variable(
+        &mut self,
+        expr: &super::ast::Variable,
+    ) -> Result<LiteralTypes, RuntimeError> {
+        self.environment.get(&expr.identifier).ok_or(self.error(
+            &expr.identifier,
+            &format!("Undefined variable '{}'.", &expr.identifier.lexeme),
+        ))
+    }
 }
 
-impl stmt::Visitor<()> for Interpreter {
-    fn visit_expression_stmt(&mut self, expr: &stmt::Expression) -> () {
-        self.evaluate(&expr.expression);
+impl stmt::Visitor<Result<(), RuntimeError>> for Interpreter {
+    fn visit_expression_stmt(&mut self, expr: &stmt::Expression) -> Result<(), RuntimeError> {
+        self.evaluate(&expr.expression)?;
+
+        Ok(())
     }
 
-    fn visit_print_stmt(&mut self, expr: &stmt::Print) -> () {
+    fn visit_print_stmt(&mut self, expr: &stmt::Print) -> Result<(), RuntimeError> {
         let res = self.evaluate(&expr.expression).unwrap();
         println!("{}", res.stringify());
+
+        Ok(())
+    }
+
+    fn visit_var_stmt(&mut self, stmt: &stmt::Var) -> Result<(), RuntimeError> {
+        let mut value = LiteralTypes::Nil;
+        if stmt.initializer != Expr::Literal(LiteralTypes::Nil) {
+            value = self.evaluate(&stmt.initializer)?;
+        }
+
+        self.environment.define(stmt.name.lexeme.clone(), value);
+
+        Ok(())
     }
 }
 
@@ -179,6 +209,18 @@ mod tests {
     #[test]
     fn run_stmt() {
         let stmt = Parser::new("print \"abc\";").parse().unwrap();
+
+        let mut inter = Interpreter::new();
+        inter.interpret(&stmt);
+    }
+
+    #[test]
+    fn run_stmt_plus() {
+        let code = r#"var a = 1;
+        var b = 2;
+        print a+b;
+        "#;
+        let stmt = Parser::new(code).parse().unwrap();
 
         let mut inter = Interpreter::new();
         inter.interpret(&stmt);

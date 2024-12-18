@@ -10,12 +10,13 @@
 //！               | "(" expression ")" ;
 //! ```
 
-use ast::{Binary, Comparison, Expr};
+use ast::{Binary, Comparison, Expr, Variable};
 use stmt::{Expression, Print, Stmt};
 
 use crate::lexer::{Lexer, LiteralTypes, Token, TokenType};
 use ast::Visitor;
 mod ast;
+mod env;
 mod inter;
 mod stmt;
 
@@ -42,11 +43,34 @@ impl Parser {
     pub fn parse(&mut self) -> Result<Vec<Stmt>, Error> {
         let mut statements = Vec::new();
         while !self.is_at_end() {
-            statements.push(self.statement()?);
+            statements.push(self.declaration()?);
         }
 
         Ok(statements)
     }
+
+    fn declaration(&mut self) -> Result<Stmt, Error> {
+        if self.is_match(&[TokenType::Var]) {
+            return self.var_declaration();
+        }
+        self.statement()
+    }
+    fn var_declaration(&mut self) -> Result<Stmt, Error> {
+        self.consume(&TokenType::Identifier, "Expect variable name.")?;
+        let name = self.previous();
+
+        let mut initializer = Expr::Literal(LiteralTypes::Nil);
+        if self.is_match(&[TokenType::Equal]) {
+            initializer = self.expression()?;
+        }
+
+        self.consume(
+            &TokenType::Semicolon,
+            "Expect ';' after variable declaration.",
+        )?;
+        Ok(Stmt::Var(stmt::Var { name, initializer }))
+    }
+
     fn statement(&mut self) -> Result<Stmt, Error> {
         if self.is_match(&[TokenType::Print]) {
             return self.print_statement();
@@ -162,6 +186,12 @@ impl Parser {
             TokenType::String,
         ]) {
             return Ok(Expr::Literal(self.previous().literal));
+        }
+
+        if self.is_match(&[TokenType::Identifier]) {
+            return Ok(Expr::Variable(Variable {
+                identifier: self.previous(),
+            }));
         }
 
         if self.is_match(&[TokenType::LeftParen]) {

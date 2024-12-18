@@ -7,6 +7,7 @@ pub enum Expr {
     Binary(Binary),
     Comparison(Comparison),
     Grouping(Grouping), // ()
+    Variable(Variable),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -34,12 +35,18 @@ pub struct Grouping {
     pub expr: Box<Expr>,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct Variable {
+    pub identifier: Token,
+}
+
 pub trait Visitor<T> {
     fn visit_binary(&mut self, expr: &Binary) -> T;
     fn visit_grouping(&mut self, expr: &Grouping) -> T;
     fn visit_unary(&mut self, expr: &Unary) -> T;
     fn visit_literal(&self, expr: &LiteralTypes) -> T;
     fn visit_comparison(&mut self, expr: &Comparison) -> T;
+    fn visit_variable(&mut self, expr: &Variable) -> T;
 }
 
 impl Expr {
@@ -50,6 +57,7 @@ impl Expr {
             Expr::Comparison(b) => visitor.visit_comparison(b),
             Expr::Unary(u) => visitor.visit_unary(u),
             Expr::Grouping(g) => visitor.visit_grouping(g),
+            Expr::Variable(var) => visitor.visit_variable(var),
         }
     }
 }
