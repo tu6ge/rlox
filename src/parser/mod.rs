@@ -123,19 +123,13 @@ impl Parser {
         self.primary()
     }
     fn primary(&mut self) -> Result<Expr, Error> {
-        if self.is_match(&[TokenType::True]) {
-            return Ok(Expr::Literal(self.previous().literal));
-        }
-        if self.is_match(&[TokenType::False]) {
-            return Ok(Expr::Literal(self.previous().literal));
-        }
-        if self.is_match(&[TokenType::Nil]) {
-            return Ok(Expr::Literal(self.previous().literal));
-        }
-        if self.is_match(&[TokenType::Number]) {
-            return Ok(Expr::Literal(self.previous().literal));
-        }
-        if self.is_match(&[TokenType::String]) {
+        if self.is_match(&[
+            TokenType::True,
+            TokenType::False,
+            TokenType::Nil,
+            TokenType::Number,
+            TokenType::String,
+        ]) {
             return Ok(Expr::Literal(self.previous().literal));
         }
 
