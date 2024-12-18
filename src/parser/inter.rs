@@ -1,6 +1,6 @@
 use crate::lexer::TokenType::*;
 
-use super::{ast::Ast, LiteralTypes, Visitor};
+use super::{ast::Expr, LiteralTypes, Visitor};
 
 pub struct Interpreter {}
 
@@ -8,7 +8,7 @@ impl Interpreter {
     pub fn new() -> Self {
         Self {}
     }
-    fn evaluate(&mut self, ast: &Ast) -> LiteralTypes {
+    fn evaluate(&mut self, ast: &Expr) -> LiteralTypes {
         ast.accept(self)
     }
 }

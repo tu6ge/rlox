@@ -10,7 +10,7 @@
 //！               | "(" expression ")" ;
 //! ```
 
-use ast::{Ast, Binary, Comparison};
+use ast::{Binary, Comparison, Expr};
 
 use crate::lexer::{Lexer, LiteralTypes, Token, TokenType};
 use ast::Visitor;
@@ -37,18 +37,18 @@ impl Parser {
         Self { tokens, current: 0 }
     }
 
-    pub fn expression(&mut self) -> Result<Ast, Error> {
+    pub fn expression(&mut self) -> Result<Expr, Error> {
         self.equality()
     }
 
     /// equality       → comparison ( ( "!=" | "==" ) comparison )* ;
-    fn equality(&mut self) -> Result<Ast, Error> {
+    fn equality(&mut self) -> Result<Expr, Error> {
         let mut expr = self.comparison()?;
 
         while self.is_match(&[TokenType::BangEqual, TokenType::EqualEqual]) {
             let op = self.previous();
             let right = self.comparison()?;
-            expr = Ast::Comparison(Comparison {
+            expr = Expr::Comparison(Comparison {
                 op,
                 left: Box::new(expr),
                 right: Box::new(right),
@@ -58,7 +58,7 @@ impl Parser {
     }
 
     /// comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
-    fn comparison(&mut self) -> Result<Ast, Error> {
+    fn comparison(&mut self) -> Result<Expr, Error> {
         let mut expr = self.term()?;
         while self.is_match(&[
             TokenType::Greater,
@@ -68,7 +68,7 @@ impl Parser {
         ]) {
             let op = self.previous();
             let right = self.term()?;
-            expr = Ast::Comparison(Comparison {
+            expr = Expr::Comparison(Comparison {
                 op,
                 left: Box::new(expr),
                 right: Box::new(right),
@@ -78,12 +78,12 @@ impl Parser {
     }
 
     /// term           → factor ( ( "-" | "+" ) factor )* ;
-    fn term(&mut self) -> Result<Ast, Error> {
+    fn term(&mut self) -> Result<Expr, Error> {
         let mut expr = self.factor()?;
         while self.is_match(&[TokenType::Plus, TokenType::Minus]) {
             let op = self.previous();
             let right = self.factor()?;
-            expr = Ast::Binary(Binary {
+            expr = Expr::Binary(Binary {
                 op,
                 left: Box::new(expr),
                 right: Box::new(right),
@@ -93,12 +93,12 @@ impl Parser {
     }
 
     /// factor         → unary ( ( "/" | "*" ) unary )*
-    fn factor(&mut self) -> Result<Ast, Error> {
+    fn factor(&mut self) -> Result<Expr, Error> {
         let mut expr = self.unary()?;
         while self.is_match(&[TokenType::Slash, TokenType::Star]) {
             let op = self.previous();
             let right = self.unary()?;
-            expr = Ast::Binary(Binary {
+            expr = Expr::Binary(Binary {
                 op,
                 left: Box::new(expr),
                 right: Box::new(right),
@@ -109,12 +109,12 @@ impl Parser {
     }
 
     /// unary → ( "!" | "-" ) unary | primary
-    fn unary(&mut self) -> Result<Ast, Error> {
+    fn unary(&mut self) -> Result<Expr, Error> {
         use ast::Unary;
         if self.is_match(&[TokenType::Bang, TokenType::Minus]) {
             let op = self.previous();
             let right = self.unary()?;
-            return Ok(Ast::Unary(Unary {
+            return Ok(Expr::Unary(Unary {
                 op,
                 right: Box::new(right),
             }));
@@ -122,27 +122,27 @@ impl Parser {
 
         self.primary()
     }
-    fn primary(&mut self) -> Result<Ast, Error> {
+    fn primary(&mut self) -> Result<Expr, Error> {
         if self.is_match(&[TokenType::True]) {
-            return Ok(Ast::Literal(self.previous().literal));
+            return Ok(Expr::Literal(self.previous().literal));
         }
         if self.is_match(&[TokenType::False]) {
-            return Ok(Ast::Literal(self.previous().literal));
+            return Ok(Expr::Literal(self.previous().literal));
         }
         if self.is_match(&[TokenType::Nil]) {
-            return Ok(Ast::Literal(self.previous().literal));
+            return Ok(Expr::Literal(self.previous().literal));
         }
         if self.is_match(&[TokenType::Number]) {
-            return Ok(Ast::Literal(self.previous().literal));
+            return Ok(Expr::Literal(self.previous().literal));
         }
         if self.is_match(&[TokenType::String]) {
-            return Ok(Ast::Literal(self.previous().literal));
+            return Ok(Expr::Literal(self.previous().literal));
         }
 
         if self.is_match(&[TokenType::LeftParen]) {
             let expr = self.expression()?;
             self.consume(&TokenType::RightParen, "Expect ')' after expression.")?;
-            return Ok(Ast::Grouping(ast::Grouping {
+            return Ok(Expr::Grouping(ast::Grouping {
                 expr: Box::new(expr),
             }));
         }
@@ -228,18 +228,18 @@ mod tests {
         let ast = parser.expression().unwrap();
         assert_eq!(
             ast,
-            Ast::Binary(Binary {
-                left: Box::new(Ast::Binary(Binary {
-                    left: Box::new(Ast::Literal(LiteralTypes::Number(1.0))),
+            Expr::Binary(Binary {
+                left: Box::new(Expr::Binary(Binary {
+                    left: Box::new(Expr::Literal(LiteralTypes::Number(1.0))),
                     op: normal_token(TokenType::Plus, "+"),
-                    right: Box::new(Ast::Binary(Binary {
-                        left: Box::new(Ast::Literal(LiteralTypes::Number(2.0))),
+                    right: Box::new(Expr::Binary(Binary {
+                        left: Box::new(Expr::Literal(LiteralTypes::Number(2.0))),
                         op: normal_token(TokenType::Star, "*"),
-                        right: Box::new(Ast::Literal(LiteralTypes::Number(3.0))),
+                        right: Box::new(Expr::Literal(LiteralTypes::Number(3.0))),
                     }))
                 })),
                 op: normal_token(TokenType::Minus, "-"),
-                right: Box::new(Ast::Literal(LiteralTypes::Number(4.0)))
+                right: Box::new(Expr::Literal(LiteralTypes::Number(4.0)))
             })
         )
     }
