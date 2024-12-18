@@ -176,7 +176,6 @@ impl Lexer {
         }
 
         if self.is_next_expected(b'"') {
-            self.current += 1;
             let value: String = self.source[self.start + 1..self.current - 1].to_string();
             self.add_token(TokenType::String, LiteralTypes::String(value));
         } else {
