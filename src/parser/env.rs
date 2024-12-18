@@ -1,10 +1,10 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::collections::HashMap;
 
 use crate::lexer::{LiteralTypes, Token};
 
 #[derive(Debug, Clone)]
 pub struct Environment {
-    enclosing: Option<Rc<RefCell<Environment>>>,
+    enclosing: Option<Box<Environment>>,
     values: HashMap<String, LiteralTypes>,
 }
 
@@ -15,7 +15,7 @@ impl Environment {
             values: HashMap::new(),
         }
     }
-    pub fn new_with_enclosing(enclosing: Rc<RefCell<Environment>>) -> Self {
+    pub fn new_with_enclosing(enclosing: Box<Environment>) -> Self {
         Self {
             enclosing: Some(enclosing),
             values: HashMap::new(),
@@ -30,7 +30,7 @@ impl Environment {
         if self.values.contains_key(key) {
             return self.values.get(key).map(Clone::clone);
         } else if let Some(enclosing) = &self.enclosing {
-            return enclosing.borrow().get(token);
+            return enclosing.get(token);
         }
 
         None
@@ -39,8 +39,8 @@ impl Environment {
         if self.values.contains_key(&name.lexeme) {
             self.values.insert(name.lexeme.clone(), value);
             return Ok(());
-        } else if let Some(enclosing) = &self.enclosing {
-            enclosing.borrow_mut().assign(name, value)?;
+        } else if self.enclosing.is_some() {
+            self.enclosing.as_mut().unwrap().assign(name, value)?;
             return Ok(());
         }
 

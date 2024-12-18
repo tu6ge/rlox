@@ -1,5 +1,3 @@
-use std::{cell::RefCell, rc::Rc};
-
 use crate::lexer::{Token, TokenType::*};
 
 use super::{
@@ -10,7 +8,7 @@ use super::{
 };
 
 pub struct Interpreter {
-    environment: Rc<RefCell<Environment>>,
+    environment: Environment,
 }
 
 #[derive(Debug, Clone)]
@@ -21,7 +19,7 @@ enum RuntimeError {
 impl Interpreter {
     pub fn new() -> Self {
         Self {
-            environment: Rc::new(RefCell::new(Environment::new())),
+            environment: Environment::new(),
         }
     }
     pub fn interpret(&mut self, stmt: &[Stmt]) -> Result<(), RuntimeError> {
@@ -33,7 +31,7 @@ impl Interpreter {
     }
     fn execute_block(&mut self, stmt: &[Stmt], env: Environment) -> Result<(), RuntimeError> {
         let previous = self.environment.clone();
-        self.environment = Rc::new(RefCell::new(env));
+        self.environment = env;
         for s in stmt {
             self.execute(&s)?;
         }
@@ -148,7 +146,7 @@ impl Visitor<Result<LiteralTypes, RuntimeError>> for Interpreter {
         expr: &super::ast::Variable,
     ) -> Result<LiteralTypes, RuntimeError> {
         self.environment
-            .borrow()
+            //.borrow()
             .get(&expr.identifier)
             .ok_or(self.error(
                 &expr.identifier,
@@ -162,7 +160,7 @@ impl Visitor<Result<LiteralTypes, RuntimeError>> for Interpreter {
     ) -> Result<LiteralTypes, RuntimeError> {
         let value = self.evaluate(&expr.value)?;
         self.environment
-            .borrow_mut()
+            //.borrow_mut()
             .assign(&expr.name, value.clone())
             .map_err(|_| {
                 self.error(
@@ -196,7 +194,7 @@ impl stmt::Visitor<Result<(), RuntimeError>> for Interpreter {
         }
 
         self.environment
-            .borrow_mut()
+            //.borrow_mut()
             .define(stmt.name.lexeme.clone(), value);
 
         Ok(())
@@ -205,7 +203,7 @@ impl stmt::Visitor<Result<(), RuntimeError>> for Interpreter {
     fn visit_block_stmt(&mut self, block: &stmt::Block) -> Result<(), RuntimeError> {
         self.execute_block(
             &block.statements,
-            Environment::new_with_enclosing(self.environment.clone()),
+            Environment::new_with_enclosing(Box::new(self.environment.clone())),
         )?;
 
         Ok(())
