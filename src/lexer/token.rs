@@ -84,3 +84,15 @@ pub enum TokenType {
     Error,
     Eof,
 }
+
+impl LiteralTypes {
+    pub fn equal(&self, rhs: &LiteralTypes) -> bool {
+        match (self, rhs) {
+            (LiteralTypes::Number(left), LiteralTypes::Number(right)) => left == right,
+            (LiteralTypes::String(left), LiteralTypes::String(right)) => left == right,
+            (LiteralTypes::Bool(left), LiteralTypes::Bool(right)) => left == right,
+            (LiteralTypes::Nil, LiteralTypes::Nil) => true,
+            _ => false,
+        }
+    }
+}
