@@ -2,17 +2,21 @@ use crate::lexer::Token;
 
 use super::ast::Expr;
 
+#[derive(Debug)]
 pub enum Stmt {
     Expression(Expression),
     Print(Print),
     Var(Var),
 }
+#[derive(Debug)]
 pub struct Expression {
     pub expression: Expr,
 }
+#[derive(Debug)]
 pub struct Print {
     pub expression: Expr,
 }
+#[derive(Debug)]
 pub struct Var {
     pub name: Token,
     pub initializer: Expr,

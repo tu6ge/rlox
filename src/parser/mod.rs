@@ -10,7 +10,7 @@
 //！               | "(" expression ")" ;
 //! ```
 
-use ast::{Binary, Comparison, Expr, Variable};
+use ast::{Assign, Binary, Comparison, Expr, Variable};
 use stmt::{Expression, Print, Stmt};
 
 use crate::lexer::{Lexer, LiteralTypes, Token, TokenType};
@@ -93,7 +93,27 @@ impl Parser {
     }
 
     pub fn expression(&mut self) -> Result<Expr, Error> {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> Result<Expr, Error> {
+        let expr = self.equality()?;
+
+        if self.is_match(&[TokenType::Equal]) {
+            let equal = self.previous();
+            let value = self.assignment()?;
+
+            if let Expr::Variable(Variable { identifier, .. }) = expr {
+                return Ok(Expr::Assign(Assign {
+                    name: identifier,
+                    value: Box::new(value),
+                }));
+            }
+
+            return Err(self.token_error(&equal, "Invalid assignment target."));
+        }
+
+        Ok(expr)
     }
 
     /// equality       → comparison ( ( "!=" | "==" ) comparison )* ;
@@ -214,7 +234,10 @@ impl Parser {
         Err(self.error(message))
     }
     fn error(&self, message: &str) -> Error {
-        let line = self.peek().line;
+        self.token_error(self.peek(), message)
+    }
+    fn token_error(&self, token: &Token, message: &str) -> Error {
+        let line = token.line;
 
         let msg = format!("line:{line} {message}");
 

@@ -20,4 +20,12 @@ impl Environment {
         let key = &token.lexeme;
         self.values.get(key).map(Clone::clone)
     }
+    pub fn assign(&mut self, name: &Token, value: LiteralTypes) -> Result<(), ()> {
+        if self.values.contains_key(&name.lexeme) {
+            self.values.insert(name.lexeme.clone(), value);
+            return Ok(());
+        }
+
+        Err(())
+    }
 }

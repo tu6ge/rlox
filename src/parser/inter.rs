@@ -22,10 +22,12 @@ impl Interpreter {
             environment: Environment::new(),
         }
     }
-    pub fn interpret(&mut self, stmt: &[Stmt]) {
+    pub fn interpret(&mut self, stmt: &[Stmt]) -> Result<(), RuntimeError> {
         for i in stmt {
-            self.execute(i);
+            self.execute(i)?;
         }
+
+        Ok(())
     }
     fn execute(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
         stmt.accept(self)
@@ -137,6 +139,23 @@ impl Visitor<Result<LiteralTypes, RuntimeError>> for Interpreter {
             &format!("Undefined variable '{}'.", &expr.identifier.lexeme),
         ))
     }
+
+    fn visit_assign_expr(
+        &mut self,
+        expr: &super::ast::Assign,
+    ) -> Result<LiteralTypes, RuntimeError> {
+        let value = self.evaluate(&expr.value)?;
+        self.environment
+            .assign(&expr.name, value.clone())
+            .map_err(|_| {
+                self.error(
+                    &expr.name,
+                    &format!("Undefined variable '{}'.", expr.name.lexeme),
+                )
+            })?;
+
+        Ok(value)
+    }
 }
 
 impl stmt::Visitor<Result<(), RuntimeError>> for Interpreter {
@@ -221,6 +240,18 @@ mod tests {
         print a+b;
         "#;
         let stmt = Parser::new(code).parse().unwrap();
+
+        let mut inter = Interpreter::new();
+        inter.interpret(&stmt);
+    }
+
+    #[test]
+    fn run_assign_stmt() {
+        let code = r#"var b = 2;
+        print b = 3;
+        "#;
+        let stmt = Parser::new(code).parse().unwrap();
+        //println!("{:?}", stmt);
 
         let mut inter = Interpreter::new();
         inter.interpret(&stmt);
