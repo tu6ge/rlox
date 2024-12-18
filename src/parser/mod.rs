@@ -11,7 +11,7 @@
 //! ```
 
 use ast::{Assign, Binary, Comparison, Expr, Variable};
-use stmt::{Expression, Print, Stmt};
+use stmt::{Block, Expression, Print, Stmt};
 
 use crate::lexer::{Lexer, LiteralTypes, Token, TokenType};
 use ast::Visitor;
@@ -75,8 +75,22 @@ impl Parser {
         if self.is_match(&[TokenType::Print]) {
             return self.print_statement();
         }
+        if self.is_match(&[TokenType::LeftBrace]) {
+            return Ok(Stmt::Block(self.block()?));
+        }
 
         self.expression_statement()
+    }
+
+    fn block(&mut self) -> Result<Block, Error> {
+        let mut statements = Vec::new();
+        while !self.check(&TokenType::RightBrace) && !self.is_at_end() {
+            statements.push(self.declaration()?)
+        }
+
+        self.consume(&TokenType::RightBrace, "Expect '}' after block.")?;
+
+        Ok(Block { statements })
     }
 
     fn print_statement(&mut self) -> Result<Stmt, Error> {

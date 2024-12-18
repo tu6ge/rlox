@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use crate::lexer::{Token, TokenType::*};
 
 use super::{
@@ -8,7 +10,7 @@ use super::{
 };
 
 pub struct Interpreter {
-    environment: Environment,
+    environment: Rc<RefCell<Environment>>,
 }
 
 #[derive(Debug, Clone)]
@@ -19,13 +21,24 @@ enum RuntimeError {
 impl Interpreter {
     pub fn new() -> Self {
         Self {
-            environment: Environment::new(),
+            environment: Rc::new(RefCell::new(Environment::new())),
         }
     }
     pub fn interpret(&mut self, stmt: &[Stmt]) -> Result<(), RuntimeError> {
         for i in stmt {
             self.execute(i)?;
         }
+
+        Ok(())
+    }
+    fn execute_block(&mut self, stmt: &[Stmt], env: Environment) -> Result<(), RuntimeError> {
+        let previous = self.environment.clone();
+        self.environment = Rc::new(RefCell::new(env));
+        for s in stmt {
+            self.execute(&s)?;
+        }
+
+        self.environment = previous;
 
         Ok(())
     }
@@ -134,10 +147,13 @@ impl Visitor<Result<LiteralTypes, RuntimeError>> for Interpreter {
         &mut self,
         expr: &super::ast::Variable,
     ) -> Result<LiteralTypes, RuntimeError> {
-        self.environment.get(&expr.identifier).ok_or(self.error(
-            &expr.identifier,
-            &format!("Undefined variable '{}'.", &expr.identifier.lexeme),
-        ))
+        self.environment
+            .borrow()
+            .get(&expr.identifier)
+            .ok_or(self.error(
+                &expr.identifier,
+                &format!("Undefined variable '{}'.", &expr.identifier.lexeme),
+            ))
     }
 
     fn visit_assign_expr(
@@ -146,6 +162,7 @@ impl Visitor<Result<LiteralTypes, RuntimeError>> for Interpreter {
     ) -> Result<LiteralTypes, RuntimeError> {
         let value = self.evaluate(&expr.value)?;
         self.environment
+            .borrow_mut()
             .assign(&expr.name, value.clone())
             .map_err(|_| {
                 self.error(
@@ -178,7 +195,18 @@ impl stmt::Visitor<Result<(), RuntimeError>> for Interpreter {
             value = self.evaluate(&stmt.initializer)?;
         }
 
-        self.environment.define(stmt.name.lexeme.clone(), value);
+        self.environment
+            .borrow_mut()
+            .define(stmt.name.lexeme.clone(), value);
+
+        Ok(())
+    }
+
+    fn visit_block_stmt(&mut self, block: &stmt::Block) -> Result<(), RuntimeError> {
+        self.execute_block(
+            &block.statements,
+            Environment::new_with_enclosing(self.environment.clone()),
+        )?;
 
         Ok(())
     }
@@ -249,6 +277,35 @@ mod tests {
     fn run_assign_stmt() {
         let code = r#"var b = 2;
         print b = 3;
+        "#;
+        let stmt = Parser::new(code).parse().unwrap();
+        //println!("{:?}", stmt);
+
+        let mut inter = Interpreter::new();
+        inter.interpret(&stmt);
+    }
+
+    #[test]
+    fn run_global_env() {
+        let code = r#"var a = "global a";
+var b = "global b";
+var c = "global c";
+{
+  var a = "outer a";
+  var b = "outer b";
+  {
+    var a = "inner a";
+    print a;
+    print b;
+    print c;
+  }
+  print a;
+  print b;
+  print c;
+}
+print a;
+print b;
+print c;
         "#;
         let stmt = Parser::new(code).parse().unwrap();
         //println!("{:?}", stmt);
