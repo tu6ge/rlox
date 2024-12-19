@@ -240,6 +240,14 @@ impl stmt::Visitor<Result<(), RuntimeError>> for Interpreter {
 
         Ok(())
     }
+
+    fn visit_while_stmt(&mut self, stmt: &stmt::While) -> Result<(), RuntimeError> {
+        while self.evaluate(&stmt.condition)?.is_true() {
+            self.execute(&stmt.body)?;
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]

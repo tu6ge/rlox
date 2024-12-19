@@ -11,7 +11,7 @@
 //! ```
 
 use ast::{Assign, Binary, Comparison, Expr, Logical, Variable};
-use stmt::{Block, Expression, If, Print, Stmt};
+use stmt::{Block, Expression, If, Print, Stmt, While};
 
 use crate::lexer::{Lexer, LiteralTypes, Token, TokenType};
 use ast::Visitor;
@@ -78,11 +78,27 @@ impl Parser {
         if self.is_match(&[TokenType::Print]) {
             return self.print_statement();
         }
+        if self.is_match(&[TokenType::While]) {
+            return self.while_statement();
+        }
         if self.is_match(&[TokenType::LeftBrace]) {
             return Ok(Stmt::Block(self.block()?));
         }
 
         self.expression_statement()
+    }
+
+    fn while_statement(&mut self) -> Result<Stmt, Error> {
+        self.consume(&TokenType::LeftParen, "Expect '(' after 'while'.")?;
+        let condition = self.expression()?;
+        self.consume(&TokenType::RightParen, "Expect ')' after while condition.")?;
+
+        let body = self.statement()?;
+
+        Ok(Stmt::While(While {
+            condition,
+            body: Box::new(body),
+        }))
     }
 
     fn if_statement(&mut self) -> Result<Stmt, Error> {
