@@ -368,14 +368,13 @@ print c;
     #[test]
     fn run_for_stmt() {
         let code = r#"
-        {
-  var i = 0;
-  print i;
-  while (i < 10) {
-    print i;
-    i = i + 1;
-    print i < 10;
-  }
+var a = 0;
+var temp;
+
+for (var b = 1; a < 10000; b = temp + b) {
+  print a;
+  temp = a;
+  a = b;
 }"#;
         let stmt = Parser::new(code).parse().unwrap();
         //println!("{:?}", stmt);
