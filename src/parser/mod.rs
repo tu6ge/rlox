@@ -72,20 +72,74 @@ impl Parser {
     }
 
     fn statement(&mut self) -> Result<Stmt, Error> {
-        if self.is_match(&[TokenType::If]) {
-            return self.if_statement();
-        }
         if self.is_match(&[TokenType::Print]) {
             return self.print_statement();
-        }
-        if self.is_match(&[TokenType::While]) {
-            return self.while_statement();
         }
         if self.is_match(&[TokenType::LeftBrace]) {
             return Ok(Stmt::Block(self.block()?));
         }
+        if self.is_match(&[TokenType::For]) {
+            return self.for_statement();
+        }
+        if self.is_match(&[TokenType::If]) {
+            return self.if_statement();
+        }
+
+        if self.is_match(&[TokenType::While]) {
+            return self.while_statement();
+        }
 
         self.expression_statement()
+    }
+
+    fn for_statement(&mut self) -> Result<Stmt, Error> {
+        self.consume(&TokenType::LeftParen, "Expect '(' after 'for'.")?;
+
+        let mut initializer;
+        if self.is_match(&[TokenType::Semicolon]) {
+            initializer = None;
+        } else if self.is_match(&[TokenType::Var]) {
+            initializer = Some(self.var_declaration()?);
+        } else {
+            initializer = Some(self.expression_statement()?);
+        }
+
+        let mut condition = Expr::Literal(LiteralTypes::Bool(true));
+        if !self.check(&TokenType::Semicolon) {
+            condition = self.expression()?;
+        }
+        self.consume(&TokenType::Semicolon, "Expect ';' after loop condition.")?;
+
+        let mut increment = None;
+        if !self.check(&TokenType::RightParen) {
+            increment = Some(self.expression()?);
+        }
+        self.consume(&TokenType::RightParen, "Expect ')' after for clauses.")?;
+
+        let mut body = self.statement()?;
+
+        if let Some(increment) = increment {
+            body = Stmt::Block(Block {
+                statements: vec![
+                    body,
+                    Stmt::Expression(Expression {
+                        expression: increment,
+                    }),
+                ],
+            })
+        }
+        body = Stmt::While(While {
+            condition,
+            body: Box::new(body),
+        });
+
+        if let Some(initializer) = initializer {
+            body = Stmt::Block(Block {
+                statements: vec![initializer, body],
+            })
+        }
+
+        Ok(body)
     }
 
     fn while_statement(&mut self) -> Result<Stmt, Error> {

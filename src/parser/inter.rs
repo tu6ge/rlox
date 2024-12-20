@@ -242,7 +242,11 @@ impl stmt::Visitor<Result<(), RuntimeError>> for Interpreter {
     }
 
     fn visit_while_stmt(&mut self, stmt: &stmt::While) -> Result<(), RuntimeError> {
-        while self.evaluate(&stmt.condition)?.is_true() {
+        loop {
+            let cond = self.evaluate(&stmt.condition)?;
+            if cond.is_true() == false {
+                break;
+            }
             self.execute(&stmt.body)?;
         }
 
@@ -355,6 +359,25 @@ print c;
     #[test]
     fn run_logical_stmt() {
         let code = r#"print nil or 123;"#;
+        let stmt = Parser::new(code).parse().unwrap();
+        //println!("{:?}", stmt);
+
+        let mut inter = Interpreter::new();
+        inter.interpret(&stmt);
+    }
+
+    #[test]
+    fn run_for_stmt() {
+        let code = r#"
+        {
+  var i = 0;
+  print i;
+  while (i < 10) {
+    print i;
+    i = i + 1;
+    print i < 10;
+  }
+}"#;
         let stmt = Parser::new(code).parse().unwrap();
         //println!("{:?}", stmt);
 
